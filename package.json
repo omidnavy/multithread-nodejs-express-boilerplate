@@ -1,0 +1,7 @@
+{
+  "name": "multithread-nodejs-express",
+  "version": "1",
+  "scripts": {
+    "start": "node app/index.js"
+  }
+}

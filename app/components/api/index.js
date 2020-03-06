@@ -3,14 +3,35 @@ const {join} = require('path');
 const {fetchSettings} = require('../settings/fetch');
 //spawn is a function we made to simplify our forking process;
 const spawn = () => fork(join(__dirname, '../../../child-processes/api-server'));
-//its the returned object from fork
-let express = spawn();
 
-//rerun child process if closed or error after 5 seconds
-express.on('exit', () => setTimeout(() => express = spawn(), 5000));
-express.on('error', () => setTimeout(() => express = spawn(), 5000));
+
+async function run(express = null) {
+    try {
+        //if we have a running child process, remove event listeners
+        if (express) {
+            express.removeAllListeners('exit');
+            express.removeAllListeners('error');
+            express.removeAllListeners('message');
+        }
+
+        //wait 1 second and run child process
+
+        //create a new promise and await for it to resolve
+        //will resolve the return object from spawn when the timeout reaches
+        express = await new Promise(resolve => setTimeout(() => resolve(spawn()), 1000));
+        //add event listeners
+        express.on('exit', () => run(express));
+        express.on('error', () => run(express));
+        express.on('message', message => handleMessage(express, message));
+    }
+    catch (e) {
+        console.trace(e)
+    }
+
+}
+
 //this is where the magic happens
-express.on('message', async function (message) { //[1]
+async function handleMessage(express, message) { //[1]
     try {
         if (message.type !== 'request') return;
         let response = null;
@@ -31,5 +52,10 @@ express.on('message', async function (message) { //[1]
     catch (e) {
         console.trace(e)
     }
-});
+}
+
+// run recursive function
+run();
+
+
 
